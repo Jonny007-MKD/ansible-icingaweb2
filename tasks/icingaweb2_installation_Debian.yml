@@ -29,3 +29,31 @@
     update_cache: yes
   loop: "{{ icingaweb2_packages }}"
   when: icingaweb2_manage_package
+
+- name: Debian - Configure mysql databases
+  become: yes
+  ansible.builtin.mysql_db:
+    login_unix_socket: "{{ mysqld_login_unix_socket }}"
+    login_host: "{{ item.host }}"
+    name: "{{ item.dbname }}"
+    state: present
+  loop: "{{ icingaweb2_resources.values() | list }}"
+  when:
+    - icingaweb2_manage_package
+    - mysqld_login_unix_socket is defined
+    - item.db == 'mysql'
+
+- name: Debian - Configure mysql users
+  community.mysql.mysql_user:
+    login_unix_socket: "{{ mysqld_login_unix_socket }}"
+    login_host: "{{ item.host }}"
+    name: "{{ item.username }}"
+    password: "{{ item.password }}"
+    state: present
+    priv: '{{ item.dbname }}.*:ALL'
+  loop: "{{ icingaweb2_resources.values() | list }}"
+  when:
+    - icingaweb2_manage_package
+    - mysqld_login_unix_socket is defined
+    - item.db == 'mysql'
+
